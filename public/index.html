@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sports Article Graph Analyzer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .header p {
+      font-size: 1.1em;
+      opacity: 0.9;
+    }
+
+    .content {
+      padding: 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+
+    @media (max-width: 1024px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 30px;
+      background: #f9f9f9;
+    }
+
+    .section h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 1.5em;
+      border-bottom: 3px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .section h3 {
+      color: #555;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+    }
+
+    /* Upload Form */
+    .upload-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    select {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 1em;
+      transition: border-color 0.3s;
+    }
+
+    input[type="file"]:focus,
+    input[type="text"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-weight: 500;
+    }
+
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .message.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    /* Articles List */
+    .articles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .article-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border-left: 4px solid #667eea;
+    }
+
+    .article-card:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      border-left-color: #764ba2;
+    }
+
+    .article-card h4 {
+      color: #333;
+      margin-bottom: 10px;
+      word-break: break-word;
+    }
+
+    .article-card-meta {
+      font-size: 0.85em;
+      color: #666;
+      margin: 10px 0;
+    }
+
+    .article-card-meta strong {
+      color: #333;
+    }
+
+    .article-id {
+      font-family: monospace;
+      font-size: 0.8em;
+      color: #999;
+      word-break: break-all;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      margin: 5px 5px 5px 0;
+    }
+
+    /* Query Section */
+    .query-section {
+      margin-top: 20px;
+    }
+
+    .query-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .query-inputs input,
+    .query-inputs select {
+      grid-column: span 1;
+    }
+
+    @media (max-width: 500px) {
+      .query-inputs {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .query-result {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 15px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .query-result pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.85em;
+      line-height: 1.4;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-card .value {
+      font-size: 2em;
+      font-weight: bold;
+      color: #667eea;
+      margin-bottom: 5px;
+    }
+
+    .stat-card .label {
+      color: #666;
+      font-size: 0.95em;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .path-display {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 15px;
+      margin: 10px 0;
+    }
+
+    .path-item {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .path-item-title {
+      flex: 1;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .path-item-distance {
+      background: #667eea;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      margin: 0 10px;
+    }
+
+    .path-arrow {
+      color: #667eea;
+      font-weight: bold;
+      margin: 0 10px;
+    }
+
+    .error-message {
+      color: #d32f2f;
+      font-size: 0.9em;
+      margin-top: 5px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .empty-state p {
+      font-size: 1.1em;
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏆 Sports Article Graph Analyzer</h1>
+      <p>Analyze articles, build relationships, and discover relevance through graph distance</p>
+    </div>
+
+    <div class="content">
+      <!-- Left Column: Upload and Overview -->
+      <div>
+        <div class="section">
+          <h2>📤 Upload Article</h2>
+          <form id="uploadForm" class="upload-form">
+            <input type="file" id="articleFile" accept=".txt" required placeholder="Select article file">
+            <input type="text" id="articleTitle" placeholder="Article title (optional)">
+            <button type="submit">Analyze Article</button>
+          </form>
+          <div id="uploadMessage"></div>
+        </div>
+
+        <div class="section">
+          <h2>📊 Overview</h2>
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+              <div class="value" id="totalArticles">0</div>
+              <div class="label">Total Articles</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="totalConnections">0</div>
+              <div class="label">Connections</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="avgConnections">0</div>
+              <div class="label">Avg per Article</div>
+            </div>
+            <div class="stat-card">
+              <div class="value" id="counties">0</div>
+              <div class="label">Counties</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>📰 Articles in System</h2>
+          <button onclick="loadArticles()" style="width: 100%; margin-bottom: 15px;">Refresh Articles</button>
+          <div id="articlesContainer" class="articles-grid"></div>
+        </div>
+      </div>
+
+      <!-- Right Column: Queries and Tools -->
+      <div>
+        <div class="section">
+          <h2>🔍 Graph Tools</h2>
+
+          <div class="tabs">
+            <button class="tab active" onclick="switchTab('distance')">Distance</button>
+            <button class="tab" onclick="switchTab('related')">Related</button>
+            <button class="tab" onclick="switchTab('search')">Search</button>
+          </div>
+
+          <!-- Distance Tab -->
+          <div id="distance" class="tab-content active">
+            <h3>Calculate Distance</h3>
+            <div class="query-inputs">
+              <input type="text" id="distanceFrom" placeholder="From Article ID">
+              <input type="text" id="distanceTo" placeholder="To Article ID">
+              <label style="grid-column: span 2; color: #666;">
+                <input type="checkbox" id="distanceWeighted" checked>
+                Use weighted distance
+              </label>
+            </div>
+            <button onclick="calculateDistance()" style="width: 100%;">Calculate Distance</button>
+            <div id="distanceResult" class="query-result" style="display: none;"></div>
+          </div>
+
+          <!-- Related Tab -->
+          <div id="related" class="tab-content">
+            <h3>Find Related Articles</h3>
+            <input type="text" id="relatedArticleId" placeholder="Article ID" style="width: 100%; margin-bottom: 10px;">
+            <div class="query-inputs">
+              <input type="number" id="maxDistance" value="2" min="1" max="10" placeholder="Max Distance">
+              <input type="number" id="resultLimit" value="10" min="1" max="100" placeholder="Limit results">
+            </div>
+            <button onclick="findRelated()" style="width: 100%;">Find Related Articles</button>
+            <div id="relatedResult" class="query-result" style="display: none;"></div>
+          </div>
+
+          <!-- Search Tab -->
+          <div id="search" class="tab-content">
+            <h3>Search Articles</h3>
+            <select id="searchType" style="width: 100%; margin-bottom: 10px;">
+              <option value="">Select search type...</option>
+              <option value="club">By Club</option>
+              <option value="county">By County</option>
+              <option value="league">By League</option>
+            </select>
+            <input type="text" id="searchQuery" placeholder="Enter search term" style="width: 100%; margin-bottom: 10px;">
+            <button onclick="searchArticles()" style="width: 100%;">Search</button>
+            <div id="searchResult" class="query-result" style="display: none;"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>⚙️ System Stats</h2>
+          <button onclick="loadStats()" style="width: 100%; margin-bottom: 15px;">Refresh Stats</button>
+          <div id="detailedStats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+
+    // Load articles on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadArticles();
+      loadStats();
+    });
+
+    // Form submission
+    document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('articleFile');
+      const titleInput = document.getElementById('articleTitle');
+      const messageDiv = document.getElementById('uploadMessage');
+
+      if (!fileInput.files[0]) {
+        showMessage(messageDiv, 'Please select a file', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      if (titleInput.value) {
+        formData.append('title', titleInput.value);
+      }
+
+      try {
+        messageDiv.innerHTML = '<div class="message info">Analyzing article<span class="loading"></span></div>';
+        const response = await fetch(`${API_BASE}/articles/analyze`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(messageDiv, 'Article analyzed successfully!', 'success');
+          fileInput.value = '';
+          titleInput.value = '';
+          setTimeout(() => {
+            loadArticles();
+            loadStats();
+          }, 1000);
+        } else {
+          showMessage(messageDiv, 'Error: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (error) {
+        showMessage(messageDiv, 'Error: ' + error.message, 'error');
+      }
+    });
+
+    function showMessage(div, message, type) {
+      div.innerHTML = `<div class="message ${type}">${message}</div>`;
+      if (type === 'success') {
+        setTimeout(() => {
+          div.innerHTML = '';
+        }, 5000);
+      }
+    }
+
+    async function loadArticles() {
+      try {
+        const response = await fetch(`${API_BASE}/articles`);
+        const data = await response.json();
+
+        const container = document.getElementById('articlesContainer');
+        if (data.articles.length === 0) {
+          container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><p>No articles yet. Upload one to get started!</p></div>';
+          return;
+        }
+
+        container.innerHTML = data.articles.map(article => `
+          <div class="article-card" onclick="selectArticle('${article.id}', '${article.title.replace(/'/g, "\\'")}')">
+            <h4>${article.title}</h4>
+            <div class="article-card-meta">
+              <strong>${article.metadata.clubs.length}</strong> club${article.metadata.clubs.length !== 1 ? 's' : ''}
+            </div>
+            <div class="article-card-meta">
+              <strong>${article.metadata.primaryCounty}</strong> county
+            </div>
+            ${article.metadata.clubs.map(club => `
+              <span class="badge">${club.name}</span>
+            `).join('')}
+            <div class="article-id">ID: ${article.id.substring(0, 8)}...</div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading articles:', error);
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const response = await fetch(`${API_BASE}/graph/stats`);
+        const data = await response.json();
+
+        document.getElementById('totalArticles').textContent = data.stats.totalArticles;
+        document.getElementById('totalConnections').textContent = data.stats.totalConnections;
+        document.getElementById('avgConnections').textContent = data.stats.avgConnectionsPerArticle.toFixed(1);
+        document.getElementById('counties').textContent = data.stats.counties.length;
+
+        const statsHtml = `
+          <h3>Detailed Stats</h3>
+          <div class="article-card-meta">
+            <strong>Counties:</strong> ${data.stats.counties.join(', ') || 'None'}
+          </div>
+          <div class="article-card-meta">
+            <strong>Leagues:</strong> ${data.stats.leagues.join(', ') || 'None'}
+          </div>
+          ${data.stats.mostConnectedArticle ? `
+            <div class="article-card-meta">
+              <strong>Most Connected:</strong> ${data.stats.mostConnectedArticle.title} (${data.stats.mostConnectedArticle.connections} connections)
+            </div>
+          ` : ''}
+        `;
+        document.getElementById('detailedStats').innerHTML = statsHtml;
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    function selectArticle(id, title) {
+      document.getElementById('distanceFrom').value = id;
+      document.getElementById('relatedArticleId').value = id;
+      switchTab('related');
+    }
+
+    function switchTab(tabName) {
+      // Hide all tabs
+      document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      // Show selected tab
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    async function calculateDistance() {
+      const fromId = document.getElementById('distanceFrom').value;
+      const toId = document.getElementById('distanceTo').value;
+      const weighted = document.getElementById('distanceWeighted').checked;
+      const resultDiv = document.getElementById('distanceResult');
+
+      if (!fromId || !toId) {
+        showMessage(resultDiv, 'Please enter both article IDs', 'error');
+        return;
+      }
+
+      try {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="message info">Calculating distance<span class="loading"></span></div>';
+
+        const response = await fetch(`${API_BASE}/graph/distance?from=${fromId}&to=${toId}&weighted=${weighted}`);
+        const data = await response.json();
+
+        if (data.success) {
+          const pathHtml = data.path.map((item, idx) => `
+            <div class="path-item">
+              <div class="path-item-title">${item.title}</div>
+              <div class="path-item-distance">${idx === 0 ? 'Start' : 'Step ' + idx}</div>
+            </div>
+          `).join('<div class="path-arrow">↓</div>');
+
+          resultDiv.innerHTML = `
+            <h3>Distance Result</h3>
+            <div class="stat-card">
+              <div class="value">${data.distance}</div>
+              <div class="label">Hops</div>
+            </div>
+            <div class="stat-card">
+              <div class="value">${(data.relevanceScore * 100).toFixed(0)}%</div>
+              <div class="label">Relevance Score</div>
+            </div>
+            <h3 style="margin-top: 20px;">Path</h3>
+            <div class="path-display">${pathHtml}</div>
+          `;
+        } else {
+          resultDiv.innerHTML = '<div class="message error">Error: ' + data.error + '</div>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
+      }
+    }
+
+    async function findRelated() {
+      const articleId = document.getElementById('relatedArticleId').value;
+      const maxDistance = document.getElementById('maxDistance').value;
+      const limit = document.getElementById('resultLimit').value;
+      const resultDiv = document.getElementById('relatedResult');
+
+      if (!articleId) {
+        showMessage(resultDiv, 'Please enter an article ID', 'error');
+        return;
+      }
+
+      try {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="message info">Finding related articles<span class="loading"></span></div>';
+
+        const response = await fetch(`${API_BASE}/graph/related/${articleId}?maxDistance=${maxDistance}&limit=${limit}`);
+        const data = await response.json();
+
+        if (data.success) {
+          let html = `<h3>Related to: ${data.sourceArticle.title}</h3>`;
+
+          for (let distance = 1; distance <= maxDistance; distance++) {
+            const articles = data.relatedArticles[distance] || [];
+            if (articles.length > 0) {
+              html += `<h3 style="margin-top: 15px;">Distance ${distance}</h3>`;
+              articles.forEach(article => {
+                html += `
+                  <div class="article-card" style="margin: 10px 0;">
+                    <h4>${article.title}</h4>
+                    <div class="article-card-meta">
+                      Relevance: <strong>${(article.relevanceScore * 100).toFixed(0)}%</strong>
+                    </div>
+                    <div class="article-card-meta">
+                      Relationship: ${article.relationships.map(r => r.type).join(', ') || 'None'}
+                    </div>
+                  </div>
+                `;
+              });
+            }
+          }
+
+          resultDiv.innerHTML = html || '<div class="message info">No related articles found</div>';
+        } else {
+          resultDiv.innerHTML = '<div class="message error">Error: ' + data.error + '</div>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
+      }
+    }
+
+    async function searchArticles() {
+      const type = document.getElementById('searchType').value;
+      const query = document.getElementById('searchQuery').value;
+      const resultDiv = document.getElementById('searchResult');
+
+      if (!type || !query) {
+        showMessage(resultDiv, 'Please select a search type and enter a query', 'error');
+        return;
+      }
+
+      try {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="message info">Searching<span class="loading"></span></div>';
+
+        const response = await fetch(`${API_BASE}/graph/search?${type}=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (data.success) {
+          if (data.results.length === 0) {
+            resultDiv.innerHTML = '<div class="message info">No articles found</div>';
+            return;
+          }
+
+          let html = `<h3>Found ${data.results.length} article${data.results.length !== 1 ? 's' : ''}</h3>`;
+          data.results.forEach(article => {
+            html += `
+              <div class="article-card" style="margin: 10px 0;">
+                <h4>${article.title}</h4>
+                <div class="article-card-meta">
+                  <strong>${article.metadata.primaryCounty}</strong> county
+                </div>
+                ${article.metadata.clubs.map(club => `
+                  <span class="badge">${club.name}</span>
+                `).join('')}
+              </div>
+            `;
+          });
+
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<div class="message error">Error: ' + data.error + '</div>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
+      }
+    }
+  </script>
+</body>
+</html>

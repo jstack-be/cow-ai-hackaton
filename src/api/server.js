@@ -1,0 +1,92 @@
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import errorHandler from './middleware/error-handler.js';
+import createArticlesRouter from './routes/articles.js';
+import createGraphRouter from './routes/graph.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * Create and configure the Express server
+ * @param {OpenAIAnalyzer} openaiAnalyzer
+ * @param {GraphService} graphService
+ * @returns {express.Application}
+ */
+export function createServer(openaiAnalyzer, graphService) {
+  const app = express();
+
+  // Middleware
+  app.use(cors());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+  // Serve static files from public directory
+  app.use(express.static(path.join(__dirname, '../../public')));
+
+  // Health check endpoint
+  app.get('/health', (req, res) => {
+    res.json({
+      success: true,
+      message: 'Sports Article Graph Analyzer is running',
+      timestamp: new Date()
+    });
+  });
+
+  // API routes
+  app.use('/api/articles', createArticlesRouter(openaiAnalyzer, graphService));
+  app.use('/api/graph', createGraphRouter(graphService));
+
+  // Root endpoint - serve dashboard
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../public/index.html'));
+  });
+
+  // API info endpoint
+  app.get('/api', (req, res) => {
+    res.json({
+      name: 'Sports Article Graph Analyzer',
+      version: '1.0.0',
+      description: 'Analyze sports articles using ChatGPT and build a graph of article relationships',
+      ui: 'Open http://localhost:3000 in your browser',
+      endpoints: {
+        health: 'GET /health',
+        articles: {
+          analyze: 'POST /api/articles/analyze',
+          analyzeBatch: 'POST /api/articles/analyze-batch',
+          getArticle: 'GET /api/articles/:id',
+          getAllArticles: 'GET /api/articles'
+        },
+        graph: {
+          distance: 'GET /api/graph/distance?from=id1&to=id2&weighted=true',
+          related: 'GET /api/graph/related/:id?maxDistance=2',
+          stats: 'GET /api/graph/stats',
+          export: 'GET /api/graph/export?format=json',
+          search: 'GET /api/graph/search?club=name | county=name | league=name'
+        }
+      }
+    });
+  });
+
+  // 404 handler
+  app.use((req, res) => {
+    // Return JSON for API calls, HTML for others
+    if (req.path.startsWith('/api')) {
+      res.status(404).json({
+        success: false,
+        error: 'Endpoint not found: ' + req.path
+      });
+    } else {
+      res.sendFile(path.join(__dirname, '../../public/index.html'));
+    }
+  });
+
+  // Error handler (must be last)
+  app.use(errorHandler);
+
+  return app;
+}
+
+export default createServer;
