@@ -62,6 +62,7 @@ export function createServer(openaiAnalyzer, graphService, vectorStore, articleG
           analyze: 'POST /api/articles/analyze',
           analyzeBatch: 'POST /api/articles/analyze-batch',
           query: 'POST /api/articles/query',
+          byInterests: 'POST /api/articles/by-interests',
           getArticle: 'GET /api/articles/:id',
           getAllArticles: 'GET /api/articles'
         },

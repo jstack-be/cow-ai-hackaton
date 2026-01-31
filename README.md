@@ -202,6 +202,39 @@ Response:
 }
 ```
 
+#### Get Articles by Interests
+```
+POST /api/articles/by-interests
+Content-Type: application/json
+
+Body:
+{
+  "interests": [
+    { "type": "sport|club|county|league", "value": "string", "weight": number }
+  ]
+}
+
+Example:
+curl -X POST http://localhost:3000/api/articles/by-interests \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interests": [
+      { "type": "sport", "value": "GAA", "weight": 1.0 },
+      { "type": "county", "value": "Dublin", "weight": 0.8 }
+    ]
+  }'
+
+Response:
+{
+  "success": true,
+  "articles": [...],
+  "total": 3,
+  "interests": [...]
+}
+```
+
+See [docs/BY_INTERESTS_API.md](docs/BY_INTERESTS_API.md) for detailed documentation and more examples.
+
 ### Graph Operations
 
 #### Calculate Distance Between Articles
