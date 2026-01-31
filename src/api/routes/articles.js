@@ -242,7 +242,11 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
           return {
             id: article.id,
             title: article.title,
+            content: article.content,
+            sourceText: article.sourceText,
             metadata: article.metadata,
+            analyzedAt: article.analyzedAt,
+            url: article.url,
             imageUrl,
             sport
           };
@@ -251,17 +255,7 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
 
       res.json({
         success: true,
-        articles: articles.map(article => ({
-          id: article.id,
-          title: article.title,
-          content: article.content,
-          sourceText: article.sourceText,
-          metadata: article.metadata,
-          analyzedAt: article.analyzedAt,
-          url: article.url,
-          imageUrl: imageUrl,
-          sport
-        })),
+        articles: articlesWithImages,
         total: articles.length
       });
     } catch (error) {
