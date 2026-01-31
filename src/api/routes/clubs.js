@@ -47,9 +47,20 @@ export function createClubsRouter(clubStore, articleStore) {
       // Store the club
       const storedClub = clubStore.store(club);
 
+      // Link any existing articles that mention this club
+      const existingArticles = articleStore.getByClub(name);
+      for (const article of existingArticles) {
+        clubStore.addArticleReference(
+          storedClub.id,
+          article.id,
+          article.analyzedAt || new Date()
+        );
+      }
+
       res.status(201).json({
         success: true,
-        club: storedClub
+        club: storedClub,
+        linkedArticles: existingArticles.length
       });
     } catch (error) {
       next(error);

@@ -4,7 +4,7 @@ import { z } from 'zod';
 const ClubSchema = z.object({
   name: z.string().min(1, 'Club name is required').describe('Full name of the club'),
   county: z.string().nullable().transform(val => val || 'Unknown').describe('County where the club is located'),
-  league: z.string().optional().describe('League the club plays in')
+  league: z.string().nullable().optional().describe('League the club plays in')
 });
 
 // Schema for a match
