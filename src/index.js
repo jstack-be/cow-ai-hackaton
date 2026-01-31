@@ -77,19 +77,15 @@ Press Ctrl+C to stop the server
 });
 
 // Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🔄 Saving vector store...');
-  await vectorStore.save();
-  console.log('✅ Vector store saved');
-  console.log('Shutting down gracefully...');
+process.on('SIGINT', () => {
+  console.log('\n⏹️  Shutting down gracefully...');
+  console.log('📝 Note: Embeddings are stored in memory only and will not persist');
   process.exit(0);
 });
 
-process.on('SIGTERM', async () => {
-  console.log('\n🔄 Saving vector store...');
-  await vectorStore.save();
-  console.log('✅ Vector store saved');
-  console.log('Terminating...');
+process.on('SIGTERM', () => {
+  console.log('\n⏹️  Terminating...');
+  console.log('📝 Note: Embeddings are stored in memory only and will not persist');
   process.exit(0);
 });
 

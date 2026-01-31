@@ -1,40 +1,22 @@
 import OpenAI from 'openai';
-import fs from 'fs/promises';
 
 /**
  * Vector Store Service
  * Manages document embeddings and semantic search
+ * Embeddings are stored in memory only (no file persistence)
  */
 export class VectorStore {
-  constructor(apiKey, storePath = 'vectors.json') {
+  constructor(apiKey) {
     this.openai = new OpenAI({ apiKey });
-    this.storePath = storePath;
     this.documents = [];
   }
 
   /**
-   * Load documents from storage
+   * Initialize the vector store (in-memory only)
    */
   async load() {
-    try {
-      const data = await fs.readFile(this.storePath, 'utf-8');
-      this.documents = JSON.parse(data);
-      console.log(`📚 Loaded ${this.documents.length} documents from vector store`);
-    } catch (error) {
-      if (error.code === 'ENOENT') {
-        console.log('📚 No existing vector store found, starting fresh');
-        this.documents = [];
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  /**
-   * Save documents to storage
-   */
-  async save() {
-    await fs.writeFile(this.storePath, JSON.stringify(this.documents, null, 2), 'utf-8');
+    console.log('📚 Vector store initialized (in-memory storage)');
+    this.documents = [];
   }
 
   /**
@@ -74,7 +56,7 @@ export class VectorStore {
    */
   async addDocument({ id, title, content, metadata = {} }) {
     console.log(`🔄 Creating embeddings for document: ${id}`);
-    
+
     // Create combined text for better semantic search
     const combinedText = `${title}\n\n${content}`;
     const embedding = await this.createEmbedding(combinedText);
@@ -91,9 +73,8 @@ export class VectorStore {
     };
 
     this.documents.push(document);
-    await this.save();
-    
-    console.log(`✅ Document indexed: "${title.substring(0, 50)}..."`);
+
+    console.log(`✅ Document indexed: "${title.substring(0, 50)}..." (stored in memory)`);
     return document;
   }
 
@@ -177,7 +158,7 @@ export class VectorStore {
   getStats() {
     return {
       totalDocuments: this.documents.length,
-      storePath: this.storePath
+      storageType: 'in-memory'
     };
   }
 
@@ -198,13 +179,7 @@ export class VectorStore {
   async removeDocument(id) {
     const initialLength = this.documents.length;
     this.documents = this.documents.filter(doc => doc.id !== id);
-    
-    if (this.documents.length < initialLength) {
-      await this.save();
-      return true;
-    }
-    
-    return false;
+    return this.documents.length < initialLength;
   }
 }
 

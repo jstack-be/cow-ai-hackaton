@@ -19,8 +19,11 @@ const ArticleMetadataSchema = z.object({
   sport: z.string().optional().describe('The specific sport (e.g., GAA, soccer, rugby, korfball)'),
   clubs: z.array(ClubSchema).min(1, 'At least one club must be mentioned'),
   matches: z.array(MatchSchema).default([]),
-  primaryCounty: z.string().nullable().transform(val => val || 'Unknown').describe('Primary county'),
-  leagues: z.array(z.string()).default([])
+  primaryCounty: z.string().min(1, 'Primary county is required'),
+  leagues: z.array(z.string()).default([]),
+  sport: z.string().min(1, 'Sport type is required').describe('Type of sport (e.g., GAA, Football, Rugby, Hurling, Camogie)'),
+  isCommercialProduct: z.boolean().default(false).describe('Whether the article discusses commercial products or services for sale'),
+  isFanBased: z.boolean().default(false).describe('Whether the article is about fan/community activities not directly related to sport')
 });
 
 // Schema for full article
@@ -80,7 +83,10 @@ export function normalizeMetadata(metadata) {
       result: match.result ? match.result.trim() : undefined
     })),
     primaryCounty: capitalizeCounty(metadata.primaryCounty.trim()),
-    leagues: metadata.leagues.map(l => l.trim())
+    leagues: metadata.leagues.map(l => l.trim()),
+    sport: metadata.sport.trim(),
+    isCommercialProduct: metadata.isCommercialProduct || false,
+    isFanBased: metadata.isFanBased || false
   };
 }
 
