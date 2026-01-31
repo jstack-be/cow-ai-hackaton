@@ -45,6 +45,38 @@ export class ArticleStore {
   }
 
   /**
+   * Find article by title (case-insensitive)
+   * @param {string} title - Article title to search for
+   * @returns {Object|null} Article or null if not found
+   */
+  findByTitle(title) {
+    const normalizedTitle = title.toLowerCase().trim();
+    for (const article of this.articles.values()) {
+      if (article.title.toLowerCase().trim() === normalizedTitle) {
+        return article;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Check if article with similar content exists
+   * Uses first 100 chars as content signature for duplicate detection
+   * @param {string} content - Article content
+   * @returns {boolean}
+   */
+  hasContentHash(content) {
+    const contentSignature = content.substring(0, 100).toLowerCase().trim();
+    for (const article of this.articles.values()) {
+      const existingSignature = article.content.substring(0, 100).toLowerCase().trim();
+      if (existingSignature === contentSignature) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Delete an article
    * @param {string} id - Article ID
    * @returns {boolean} True if article was deleted, false if not found
