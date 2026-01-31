@@ -17,9 +17,9 @@ const MatchSchema = z.object({
 // Schema for article metadata
 const ArticleMetadataSchema = z.object({
   sport: z.string().optional().describe('The specific sport (e.g., GAA, soccer, rugby, korfball)'),
-  clubs: z.array(ClubSchema).min(1, 'At least one club must be mentioned'),
+  clubs: z.array(ClubSchema).default([]),
   matches: z.array(MatchSchema).default([]),
-  primaryCounty: z.string().min(1, 'Primary county is required'),
+  primaryCounty: z.string().nullable().default('Unknown'),
   leagues: z.array(z.string()).default([]),
   sport: z.string().min(1, 'Sport type is required').describe('Type of sport (e.g., GAA, Football, Rugby, Hurling, Camogie)'),
   isCommercialProduct: z.boolean().default(false).describe('Whether the article discusses commercial products or services for sale'),
@@ -74,7 +74,7 @@ export function normalizeMetadata(metadata) {
   return {
     clubs: metadata.clubs.map(club => ({
       name: club.name.trim(),
-      county: capitalizeCounty(club.county.trim()),
+      county: capitalizeCounty(club.county ? club.county.trim() : 'Unknown'),
       league: club.league ? club.league.trim() : undefined
     })),
     matches: metadata.matches.map(match => ({
@@ -82,7 +82,7 @@ export function normalizeMetadata(metadata) {
       awayTeam: match.awayTeam.trim(),
       result: match.result ? match.result.trim() : undefined
     })),
-    primaryCounty: capitalizeCounty(metadata.primaryCounty.trim()),
+    primaryCounty: metadata.primaryCounty ? capitalizeCounty(metadata.primaryCounty.trim()) : 'Unknown',
     leagues: metadata.leagues.map(l => l.trim()),
     sport: metadata.sport.trim(),
     isCommercialProduct: metadata.isCommercialProduct || false,
