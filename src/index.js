@@ -5,6 +5,7 @@ import VectorStore from './services/vector-store.js';
 import ArticleGenerator from './services/article-generator.js';
 import ClubStore from './services/club-store.js';
 import PodcastService from './services/podcast-service.js';
+import SampleLoader from './services/sample-loader.js';
 import createServer from './api/server.js';
 
 // Load environment variables
@@ -32,6 +33,27 @@ const podcastService = new PodcastService(OPENAI_API_KEY);
 // Load vector store data
 console.log('🔄 Loading vector store...');
 await vectorStore.load();
+
+// Auto-load sample articles if enabled
+const AUTO_LOAD_SAMPLES = process.env.AUTO_LOAD_SAMPLES === 'true';
+if (AUTO_LOAD_SAMPLES) {
+  console.log('📂 Loading sample articles...');
+  const sampleLoader = new SampleLoader(openaiAnalyzer, graphService, vectorStore);
+
+  try {
+    const result = await sampleLoader.loadSamples({ skipDuplicates: true });
+    console.log(`✅ Loaded ${result.loaded}/${result.total} sample articles`);
+    if (result.failed > 0) {
+      console.log(`⚠️  ${result.failed} articles failed to load`);
+    }
+    if (result.skipped > 0) {
+      console.log(`⏭️  ${result.skipped} articles skipped (already exist)`);
+    }
+  } catch (error) {
+    console.error('❌ Failed to load sample articles:', error.message);
+    // Don't crash - continue startup
+  }
+}
 
 // Create and start server
 const app = createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore, podcastService);

@@ -220,6 +220,14 @@ export class GraphService {
   }
 
   /**
+   * Get the article store instance
+   * @returns {ArticleStore}
+   */
+  getArticleStore() {
+    return this.store;
+  }
+
+  /**
    * Clear all data
    */
   clear() {
