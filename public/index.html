@@ -382,6 +382,107 @@
       font-size: 1.1em;
       margin: 10px 0;
     }
+
+    /* Club styles */
+    .club-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 10px 0;
+      border-left: 4px solid #764ba2;
+      transition: all 0.3s;
+    }
+
+    .club-card:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+      border-left-color: #667eea;
+    }
+
+    .club-card h4 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .club-meta {
+      font-size: 0.9em;
+      color: #666;
+      margin: 5px 0;
+    }
+
+    .club-socials {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .social-link {
+      display: inline-block;
+      background: #e8f4f8;
+      color: #0066cc;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      text-decoration: none;
+    }
+
+    .club-articles-count {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #eee;
+      font-size: 0.85em;
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 1em;
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      color: #666;
+      font-size: 0.9em;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+
+    .club-detail {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+
+    .club-detail h4 {
+      color: #667eea;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -434,6 +535,31 @@
           <h2>📰 Articles in System</h2>
           <button onclick="loadArticles()" style="width: 100%; margin-bottom: 15px;">Refresh Articles</button>
           <div id="articlesContainer" class="articles-grid"></div>
+        </div>
+
+        <div class="section">
+          <h2>🏅 Add Club Profile</h2>
+          <form id="clubForm" class="upload-form">
+            <input type="text" id="clubName" placeholder="Club Name *" required>
+            <div class="form-row">
+              <input type="text" id="clubCounty" placeholder="County *" required>
+              <input type="text" id="clubLeague" placeholder="League (optional)">
+            </div>
+            <textarea id="clubDescription" placeholder="Club description (optional)"></textarea>
+            <input type="url" id="clubWebsite" placeholder="Website URL (optional)">
+            <input type="text" id="clubTwitter" placeholder="Twitter handle (optional)">
+            <input type="text" id="clubFacebook" placeholder="Facebook page (optional)">
+            <input type="text" id="clubInstagram" placeholder="Instagram handle (optional)">
+            <button type="submit">Create Club Profile</button>
+          </form>
+          <div id="clubMessage"></div>
+        </div>
+
+        <div class="section">
+          <h2>🏆 Clubs in System</h2>
+          <button onclick="loadClubs()" style="width: 100%; margin-bottom: 15px;">Refresh Clubs</button>
+          <input type="text" id="clubSearchQuery" placeholder="Search clubs by name..." style="width: 100%; margin-bottom: 10px;" onkeyup="filterClubs()">
+          <div id="clubsContainer" style="max-height: 400px; overflow-y: auto;"></div>
         </div>
       </div>
 
@@ -513,17 +639,24 @@
           <button onclick="loadStats()" style="width: 100%; margin-bottom: 15px;">Refresh Stats</button>
           <div id="detailedStats"></div>
         </div>
+
+        <div class="section" id="clubDetailSection" style="display: none;">
+          <h2>📋 Club Details</h2>
+          <div id="clubDetailContainer"></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const API_BASE = 'http://localhost:3000/api';
+    // Detect current port from window location
+    const API_BASE = `${window.location.origin}/api`;
 
     // Load articles on page load
     document.addEventListener('DOMContentLoaded', () => {
       loadArticles();
       loadStats();
+      loadClubs();
     });
 
     // Form submission
@@ -602,21 +735,39 @@
           return;
         }
 
-        container.innerHTML = data.articles.map(article => `
-          <div class="article-card" onclick="selectArticle('${article.id}', '${article.title.replace(/'/g, "\\'")}')">
-            <h4>${article.title}</h4>
-            <div class="article-card-meta">
-              <strong>${article.metadata.clubs.length}</strong> club${article.metadata.clubs.length !== 1 ? 's' : ''}
+        // Also load clubs to check which ones have profiles
+        const clubsResponse = await fetch(`${API_BASE}/clubs`);
+        const clubsData = await clubsResponse.json();
+        const clubProfiles = clubsData.clubs || [];
+        const clubProfileNames = new Set(clubProfiles.map(c => c.name.toLowerCase().trim()));
+
+        container.innerHTML = data.articles.map(article => {
+          // Mark clubs that have profiles vs those that don't
+          const clubBadges = article.metadata.clubs.map(club => {
+            const hasProfile = clubProfileNames.has(club.name.toLowerCase().trim());
+            const clubProfile = clubProfiles.find(c => c.name.toLowerCase().trim() === club.name.toLowerCase().trim());
+            
+            if (hasProfile && clubProfile) {
+              return `<span class="badge" style="background: #28a745; cursor: pointer;" onclick="viewClubDetails('${clubProfile.id}')" title="Click to view club profile">\u2705 ${club.name}</span>`;
+            } else {
+              return `<span class="badge" style="background: #ffc107; color: #333; cursor: pointer;" onclick="quickCreateClub('${club.name.replace(/'/g, "\\'")}', '${club.county.replace(/'/g, "\\'")}', '${club.league ? club.league.replace(/'/g, "\\'") : ''}')" title="Click to create club profile">\u2795 ${club.name}</span>`;
+            }
+          }).join('');
+
+          return `
+            <div class="article-card" onclick="selectArticle('${article.id}', '${article.title.replace(/'/g, "\\'")}')">
+              <h4>${article.title}</h4>
+              <div class="article-card-meta">
+                <strong>${article.metadata.clubs.length}</strong> club${article.metadata.clubs.length !== 1 ? 's' : ''}
+              </div>
+              <div class="article-card-meta">
+                <strong>${article.metadata.primaryCounty}</strong> county
+              </div>
+              ${clubBadges}
+              <div class="article-id">ID: ${article.id.substring(0, 8)}...</div>
             </div>
-            <div class="article-card-meta">
-              <strong>${article.metadata.primaryCounty}</strong> county
-            </div>
-            ${article.metadata.clubs.map(club => `
-              <span class="badge">${club.name}</span>
-            `).join('')}
-            <div class="article-id">ID: ${article.id.substring(0, 8)}...</div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
       } catch (error) {
         console.error('Error loading articles:', error);
       }
@@ -873,6 +1024,220 @@
       } catch (error) {
         resultDiv.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
       }
+    }
+
+    // Club Management Functions
+    let allClubs = [];
+
+    // Club form submission
+    document.getElementById('clubForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const messageDiv = document.getElementById('clubMessage');
+
+      const clubData = {
+        name: document.getElementById('clubName').value,
+        county: document.getElementById('clubCounty').value,
+        league: document.getElementById('clubLeague').value || null,
+        description: document.getElementById('clubDescription').value || null,
+        website: document.getElementById('clubWebsite').value || null,
+        socials: {}
+      };
+
+      // Add social media links if provided
+      const twitter = document.getElementById('clubTwitter').value;
+      const facebook = document.getElementById('clubFacebook').value;
+      const instagram = document.getElementById('clubInstagram').value;
+      
+      if (twitter) clubData.socials.twitter = twitter;
+      if (facebook) clubData.socials.facebook = facebook;
+      if (instagram) clubData.socials.instagram = instagram;
+
+      try {
+        messageDiv.innerHTML = '<div class="message info">Creating club profile<span class="loading"></span></div>';
+        
+        const response = await fetch(`${API_BASE}/clubs`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(clubData)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showMessage(messageDiv, 'Club profile created successfully!', 'success');
+          document.getElementById('clubForm').reset();
+          setTimeout(() => {
+            loadClubs();
+          }, 1000);
+        } else {
+          showMessage(messageDiv, 'Error: ' + (data.error || 'Unknown error'), 'error');
+        }
+      } catch (error) {
+        showMessage(messageDiv, 'Error: ' + error.message, 'error');
+      }
+    });
+
+    async function loadClubs() {
+      try {
+        const response = await fetch(`${API_BASE}/clubs`);
+        const data = await response.json();
+
+        allClubs = data.clubs || [];
+        displayClubs(allClubs);
+      } catch (error) {
+        console.error('Error loading clubs:', error);
+        document.getElementById('clubsContainer').innerHTML = 
+          '<div class="message error">Error loading clubs</div>';
+      }
+    }
+
+    function displayClubs(clubs) {
+      const container = document.getElementById('clubsContainer');
+      
+      if (clubs.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No clubs yet. Create one to get started!</p></div>';
+        return;
+      }
+
+      container.innerHTML = clubs.map(club => {
+        const articleCount = club.articleReferences ? club.articleReferences.length : 0;
+        let socialsHtml = '';
+        
+        if (club.socials && Object.keys(club.socials).length > 0) {
+          socialsHtml = '<div class="club-socials">';
+          for (const [platform, handle] of Object.entries(club.socials)) {
+            socialsHtml += `<span class="social-link">📱 ${platform}: ${handle}</span>`;
+          }
+          socialsHtml += '</div>';
+        }
+
+        return `
+          <div class="club-card" onclick="viewClubDetails('${club.id}')">
+            <h4>${club.name}</h4>
+            <div class="club-meta">📍 ${club.county}</div>
+            ${club.league ? `<div class="club-meta">🏆 ${club.league}</div>` : ''}
+            ${club.website ? `<div class="club-meta">🌐 <a href="${club.website}" target="_blank" onclick="event.stopPropagation()">${club.website}</a></div>` : ''}
+            ${socialsHtml}
+            <div class="club-articles-count">📰 ${articleCount} article${articleCount !== 1 ? 's' : ''}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterClubs() {
+      const query = document.getElementById('clubSearchQuery').value.toLowerCase();
+      const filtered = allClubs.filter(club => 
+        club.name.toLowerCase().includes(query) ||
+        club.county.toLowerCase().includes(query) ||
+        (club.league && club.league.toLowerCase().includes(query))
+      );
+      displayClubs(filtered);
+    }
+
+    async function viewClubDetails(clubId) {
+      const section = document.getElementById('clubDetailSection');
+      const container = document.getElementById('clubDetailContainer');
+      
+      section.style.display = 'block';
+      container.innerHTML = '<div class="message info">Loading club details<span class="loading"></span></div>';
+      
+      // Scroll to the section
+      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      try {
+        const response = await fetch(`${API_BASE}/clubs/${clubId}?includeArticles=true`);
+        const data = await response.json();
+
+        if (data.success) {
+          const club = data.club;
+          const articles = data.recentArticles || [];
+
+          let socialsHtml = '';
+          if (club.socials && Object.keys(club.socials).length > 0) {
+            socialsHtml = '<div style="margin: 10px 0;"><strong>Social Media:</strong><div class="club-socials" style="margin-top: 5px;">';
+            for (const [platform, handle] of Object.entries(club.socials)) {
+              socialsHtml += `<span class="social-link">${platform}: ${handle}</span>`;
+            }
+            socialsHtml += '</div></div>';
+          }
+
+          let articlesHtml = '';
+          if (articles.length > 0) {
+            articlesHtml = '<h4 style="margin-top: 20px; margin-bottom: 10px;">📰 Recent Articles</h4>';
+            articles.forEach(article => {
+              const date = new Date(article.analyzedAt).toLocaleDateString();
+              articlesHtml += `
+                <div class="article-card" style="margin: 10px 0;">
+                  <h4>${article.title}</h4>
+                  <div class="article-card-meta">Date: ${date}</div>
+                  <div class="article-card-meta">${article.metadata.primaryCounty} • ${article.metadata.clubs.length} club${article.metadata.clubs.length !== 1 ? 's' : ''}</div>
+                  ${article.metadata.clubs.map(c => `<span class="badge">${c.name}</span>`).join('')}
+                </div>
+              `;
+            });
+          } else {
+            articlesHtml = '<div class="message info" style="margin-top: 15px;">No articles yet</div>';
+          }
+
+          container.innerHTML = `
+            <div class="club-detail">
+              <h3>${club.name}</h3>
+              <div style="margin: 10px 0;">
+                <strong>County:</strong> ${club.county}
+              </div>
+              ${club.league ? `<div style="margin: 10px 0;"><strong>League:</strong> ${club.league}</div>` : ''}
+              ${club.description ? `<div style="margin: 10px 0;"><strong>Description:</strong> ${club.description}</div>` : ''}
+              ${club.website ? `<div style="margin: 10px 0;"><strong>Website:</strong> <a href="${club.website}" target="_blank">${club.website}</a></div>` : ''}
+              ${socialsHtml}
+              <div style="margin: 10px 0;">
+                <strong>Created:</strong> ${new Date(club.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+            ${articlesHtml}
+            <button onclick="closeClubDetails()" style="width: 100%; margin-top: 15px;">Close</button>
+          `;
+        } else {
+          container.innerHTML = '<div class="message error">Error loading club details</div>';
+        }
+      } catch (error) {
+        container.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
+      }
+    }
+
+    function closeClubDetails() {
+      document.getElementById('clubDetailSection').style.display = 'none';
+    }
+
+    // Quick create club from article mention
+    function quickCreateClub(name, county, league) {
+      event.stopPropagation(); // Prevent article card click
+      
+      // Scroll to club form
+      document.querySelector('#clubForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Pre-fill form
+      document.getElementById('clubName').value = name;
+      document.getElementById('clubCounty').value = county;
+      if (league) {
+        document.getElementById('clubLeague').value = league;
+      }
+      
+      // Highlight the form
+      const clubForm = document.querySelector('#clubForm').parentElement;
+      clubForm.style.border = '3px solid #667eea';
+      clubForm.style.transition = 'border 0.3s';
+      setTimeout(() => {
+        clubForm.style.border = '';
+      }, 2000);
+      
+      // Show a helpful message
+      const messageDiv = document.getElementById('clubMessage');
+      messageDiv.innerHTML = '<div class="message info">✨ Form pre-filled! Add details and create profile.</div>';
+      setTimeout(() => {
+        messageDiv.innerHTML = '';
+      }, 5000);
     }
   </script>
 </body>

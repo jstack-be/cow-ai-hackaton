@@ -7,9 +7,10 @@ import { ArticleStore } from './article-store.js';
  * Combines ArticleGraph and ArticleStore for unified graph operations
  */
 export class GraphService {
-  constructor() {
+  constructor(clubStore = null) {
     this.graph = new ArticleGraph();
     this.store = new ArticleStore();
+    this.clubStore = clubStore;
   }
 
   /**
@@ -23,6 +24,21 @@ export class GraphService {
 
     // Add to graph
     this.graph.addArticle(article);
+
+    // Link article to club profiles if clubStore is available
+    if (this.clubStore && article.metadata?.clubs) {
+      for (const clubMention of article.metadata.clubs) {
+        const existingClub = this.clubStore.getByName(clubMention.name);
+        if (existingClub) {
+          // Add article reference to the club
+          this.clubStore.addArticleReference(
+            existingClub.id,
+            article.id,
+            article.analyzedAt || new Date()
+          );
+        }
+      }
+    }
 
     // Return article with related articles
     return {

@@ -10,6 +10,11 @@ A Node.js REST API application that analyzes sports articles using OpenAI's Chat
   - Matches and their results
   - County/area information
   - Leagues and competitions
+- **Club Profile Pages**: Create and manage profiles for local sports clubs:
+  - Store club information (name, county, league)
+  - Add website and social media links
+  - Automatically link articles to clubs when mentioned
+  - View 5 most recent articles about each club
 - **Graph-Based Relationships**: Builds a network of articles based on:
   - Same clubs mentioned
   - Geographic proximity (neighboring counties)
@@ -19,7 +24,7 @@ A Node.js REST API application that analyzes sports articles using OpenAI's Chat
   - Direct distance (weighted by relationship strength)
   - Shortest path discovery
   - Relevance scoring
-- **REST API**: Full-featured API for article analysis and graph querying
+- **REST API**: Full-featured API for article analysis, club management, and graph querying
 
 ## Prerequisites
 
@@ -575,6 +580,7 @@ src/
 ├── api/                    # Express.js API
 │   ├── routes/             # Route handlers
 │   │   ├── articles.js     # Article endpoints
+│   │   ├── clubs.js        # Club profile endpoints
 │   │   └── graph.js        # Graph endpoints
 │   ├── middleware/         # Express middleware
 │   │   ├── error-handler.js
@@ -583,6 +589,7 @@ src/
 ├── services/               # Business logic
 │   ├── openai-analyzer.js  # ChatGPT integration
 │   ├── article-store.js    # Storage
+│   ├── club-store.js       # Club profile storage
 │   └── graph-service.js    # Graph facade
 ├── graph/                  # Graph algorithms
 │   ├── article-graph.js    # Graph structure
@@ -594,6 +601,13 @@ src/
 │   └── county-data.js      # County adjacency
 └── index.js                # Entry point
 ```
+
+## Additional Documentation
+
+- **[Club Profiles Feature](docs/CLUB_PROFILES.md)** - Complete guide to club profile pages
+- **[Club Quick Start](docs/CLUB_QUICK_START.md)** - Quick start guide for testing club profiles
+- **[Features](docs/FEATURES.md)** - Detailed feature documentation
+- **[Testing Guide](docs/TESTING_GUIDE.md)** - How to test the application
 
 ## License
 

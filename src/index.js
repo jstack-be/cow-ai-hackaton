@@ -3,6 +3,7 @@ import OpenAIAnalyzer from './services/openai-analyzer.js';
 import GraphService from './services/graph-service.js';
 import VectorStore from './services/vector-store.js';
 import ArticleGenerator from './services/article-generator.js';
+import ClubStore from './services/club-store.js';
 import createServer from './api/server.js';
 
 // Load environment variables
@@ -21,7 +22,8 @@ if (!OPENAI_API_KEY) {
 
 // Initialize services
 const openaiAnalyzer = new OpenAIAnalyzer(OPENAI_API_KEY);
-const graphService = new GraphService();
+const clubStore = new ClubStore();
+const graphService = new GraphService(clubStore);
 const vectorStore = new VectorStore(OPENAI_API_KEY);
 const articleGenerator = new ArticleGenerator(OPENAI_API_KEY);
 
@@ -30,7 +32,7 @@ console.log('🔄 Loading vector store...');
 await vectorStore.load();
 
 // Create and start server
-const app = createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator);
+const app = createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore);
 
 app.listen(PORT, () => {
   const stats = vectorStore.getStats();
@@ -62,6 +64,12 @@ API Endpoints:
   GET  /api/graph/related/:id         - Find related articles
   GET  /api/graph/export              - Export graph data
   GET  /api/graph/search              - Search articles
+
+  POST /api/clubs                     - Create a new club profile
+  GET  /api/clubs                     - List all clubs
+  GET  /api/clubs/:id                 - Get club profile with articles
+  PUT  /api/clubs/:id                 - Update club profile
+  GET  /api/clubs/:id/articles        - Get articles about a club
 
 Press Ctrl+C to stop the server
   `);

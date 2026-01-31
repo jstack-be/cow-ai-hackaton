@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import errorHandler from './middleware/error-handler.js';
 import createArticlesRouter from './routes/articles.js';
 import createGraphRouter from './routes/graph.js';
+import createClubsRouter from './routes/clubs.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,9 +16,10 @@ const __dirname = path.dirname(__filename);
  * @param {GraphService} graphService
  * @param {VectorStore} vectorStore
  * @param {ArticleGenerator} articleGenerator
+ * @param {ClubStore} clubStore
  * @returns {express.Application}
  */
-export function createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator) {
+export function createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore) {
   const app = express();
 
   // Middleware
@@ -40,6 +42,7 @@ export function createServer(openaiAnalyzer, graphService, vectorStore, articleG
   // API routes
   app.use('/api/articles', createArticlesRouter(openaiAnalyzer, graphService, vectorStore, articleGenerator));
   app.use('/api/graph', createGraphRouter(graphService));
+  app.use('/api/clubs', createClubsRouter(clubStore, graphService.store));
 
   // Root endpoint - serve dashboard
   app.get('/', (req, res) => {
@@ -68,6 +71,17 @@ export function createServer(openaiAnalyzer, graphService, vectorStore, articleG
           stats: 'GET /api/graph/stats',
           export: 'GET /api/graph/export?format=json',
           search: 'GET /api/graph/search?club=name | county=name | league=name'
+        },
+        clubs: {
+          createClub: 'POST /api/clubs',
+          getAllClubs: 'GET /api/clubs',
+          searchClubs: 'GET /api/clubs?name=name&county=county&league=league',
+          getClub: 'GET /api/clubs/:id?includeArticles=true',
+          getClubArticles: 'GET /api/clubs/:id/articles?limit=5',
+          updateClub: 'PUT /api/clubs/:id',
+          deleteClub: 'DELETE /api/clubs/:id',
+          getByCounty: 'GET /api/clubs/by-county/:county',
+          getByLeague: 'GET /api/clubs/by-league/:league'
         }
       }
     });
