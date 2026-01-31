@@ -108,6 +108,36 @@ export class VectorStore {
    * @returns {Promise<Object>} Answer and sources
    */
   async answerQuestion(query, topK = 3) {
+    // Check if this is a technical sports rules question
+    const isTechnicalRulesQuestion = await this.isTechnicalSportsRulesQuestion(query);
+
+    // If it's a technical rules question, answer directly without requiring articles
+    if (isTechnicalRulesQuestion) {
+      console.log(`⚖️ Detected technical sports rules question`);
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a knowledgeable sports expert who answers technical questions about sports rules, regulations, and game mechanics. Your answers should be:\n1. Accurate and based on official rules\n2. Clear and concise\n3. Technical in nature (about rules, scoring, regulations, game mechanics)\n4. Limited to factual information about how sports work\n\nYou should answer questions about:\n- Official rules and regulations of sports\n- Scoring systems and point calculations\n- Game mechanics and procedures\n- Technical aspects of how sports are played\n- Referee decisions and rule interpretations\n\nDo NOT answer questions about:\n- Specific teams, players, or match results (unless it\'s about a rules example)\n- Predictions or opinions\n- Commercial products or betting\n- Non-sports related topics\n\nIf the question is not about technical sports rules, politely decline and explain that you only answer technical sports rules questions.'
+          },
+          {
+            role: 'user',
+            content: query
+          }
+        ],
+        max_tokens: 600,
+        temperature: 0.2
+      });
+
+      return {
+        answer: response.choices[0].message.content.trim(),
+        sources: [],
+        isTechnicalRulesAnswer: true
+      };
+    }
+
+    // Otherwise, use article-based RAG
     const relevantDocs = await this.search(query, topK);
 
     if (relevantDocs.length === 0) {
@@ -149,6 +179,32 @@ export class VectorStore {
         similarity: doc.similarity
       }))
     };
+  }
+
+  /**
+   * Determine if a query is about technical sports rules
+   * @param {string} query - User's question
+   * @returns {Promise<boolean>} True if it's a technical rules question
+   */
+  async isTechnicalSportsRulesQuestion(query) {
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a classifier that determines if a question is about technical sports rules. Return ONLY 'true' or 'false'.\n\nA question is about technical sports rules if it asks about:\n- Official rules and regulations of a sport\n- Scoring systems, point calculations, or game mechanics\n- How a sport is played (procedures, positions, gameplay)\n- Referee decisions and rule interpretations\n- Technical aspects of sports (offside rules, fouls, penalties, etc.)\n\nA question is NOT about technical sports rules if it asks about:\n- Specific teams, players, matches, or results\n- Predictions or opinions\n- Commercial products, merchandise, or betting\n- Fan activities or community events\n- Historical facts about teams or leagues (unless asking about rule changes)\n\nExamples:\n- "What is the offside rule in soccer?" -> true\n- "How many points is a try worth in rugby?" -> true\n- "What are the rules for a free kick in GAA?" -> true\n- "Who won the match between Dublin and Kerry?" -> false\n- "What teams are in the Premier League?" -> false\n- "Is Dublin GAA a good team?" -> false\n\nRespond with ONLY 'true' or 'false'.`
+        },
+        {
+          role: 'user',
+          content: query
+        }
+      ],
+      max_tokens: 10,
+      temperature: 0.0
+    });
+
+    const result = response.choices[0].message.content.trim().toLowerCase();
+    return result === 'true';
   }
 
   /**

@@ -10,6 +10,11 @@ A Node.js REST API application that analyzes sports articles using OpenAI's Chat
   - Matches and their results
   - County/area information
   - Leagues and competitions
+- **Natural Language Query System**: 
+  - Ask questions about your articles using semantic search
+  - Get answers about technical sports rules (offside, scoring, fouls, etc.)
+  - AI understands context and provides detailed answers
+  - Two modes: knowledge base queries and technical rules queries
 - **AI Podcast Generation**: Generate engaging 3-minute podcast scripts:
   - Create podcasts from all articles or filtered by interests
   - Conversational single-person host style
@@ -206,6 +211,82 @@ Response:
   "total": 5
 }
 ```
+
+#### Query Articles with Natural Language
+```
+POST /api/articles/query
+Content-Type: application/json
+
+Body:
+{
+  "query": "string",    // Your question
+  "topK": 3            // Optional: number of articles to search (default: 3)
+}
+```
+
+**Features:**
+- 🤖 **AI-Powered Semantic Search**: Understands context and meaning, not just keywords
+- 📚 **Article-Based Answers**: Retrieves and analyzes relevant articles from your knowledge base
+- ⚖️ **Technical Sports Rules**: Can answer general sports rules questions without articles
+- 🎯 **Two Query Modes**:
+  - **Knowledge Base Mode**: Answers questions about your uploaded articles (teams, matches, results)
+  - **Rules Mode**: Answers technical questions about sports rules, scoring, and game mechanics
+
+**Example - Knowledge Base Query:**
+```bash
+curl -X POST http://localhost:3000/api/articles/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Which teams played in the championship final?", "topK": 3}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "query": "Which teams played in the championship final?",
+  "answer": "Dublin GAA and Kerry GAA played in the All-Ireland Senior Championship final...",
+  "sources": [
+    {
+      "id": "uuid",
+      "title": "Dublin vs Kerry Championship Final",
+      "similarity": 0.89
+    }
+  ],
+  "documentsSearched": 3
+}
+```
+
+**Example - Technical Sports Rules Query:**
+```bash
+curl -X POST http://localhost:3000/api/articles/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is the offside rule in soccer?"}'
+```
+
+Response:
+```json
+{
+  "success": true,
+  "query": "What is the offside rule in soccer?",
+  "answer": "The offside rule in soccer states that a player is in an offside position if they are in the opposing team's half of the field and closer to the opponent's goal line than both the ball and the second-to-last opponent (usually the last defender) at the moment the ball is played to them...",
+  "sources": [],
+  "isTechnicalRulesAnswer": true,
+  "documentsSearched": 3
+}
+```
+
+**Supported Technical Rules Questions:**
+- Official rules and regulations of sports (GAA, soccer, rugby, etc.)
+- Scoring systems and point calculations
+- Game mechanics and procedures
+- Referee decisions and rule interpretations
+- Technical aspects (offside, fouls, penalties, free kicks, etc.)
+
+**Not Supported:**
+- Predictions or betting advice
+- Commercial products or merchandise
+- Non-sports related topics
+- Personal opinions about teams or players
 
 #### Get Articles by Interests
 ```
@@ -544,12 +625,25 @@ Sample articles are included in `data/sample-articles/`:
    curl http://localhost:3000/api/graph/stats
    ```
 
-5. **Find related articles** (replace with actual IDs from step 2 and 3)
+5. **Query articles with natural language**
+   ```bash
+   # Ask about your articles
+   curl -X POST http://localhost:3000/api/articles/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Which teams played in the championship?", "topK": 3}'
+   
+   # Ask about sports rules
+   curl -X POST http://localhost:3000/api/articles/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "How many points is a goal worth in GAA?"}'
+   ```
+
+6. **Find related articles** (replace with actual IDs from step 2 and 3)
    ```bash
    curl "http://localhost:3000/api/graph/related/{article1-id}?maxDistance=2"
    ```
 
-6. **Calculate distance** between articles
+7. **Calculate distance** between articles
    ```bash
    curl "http://localhost:3000/api/graph/distance?from={id1}&to={id2}"
    ```
@@ -724,9 +818,24 @@ src/
 
 ## Additional Documentation
 
+### Core Features
+- **[Query API](docs/QUERY_API.md)** - Natural language queries and sports rules questions
+- **[Query Quick Reference](docs/QUERY_QUICK_REF.md)** - Quick guide to the query API
 - **[Club Profiles Feature](docs/CLUB_PROFILES.md)** - Complete guide to club profile pages
 - **[Club Quick Start](docs/CLUB_QUICK_START.md)** - Quick start guide for testing club profiles
 - **[Features](docs/FEATURES.md)** - Detailed feature documentation
+
+### Podcast Features
+- **[Podcast API](docs/PODCAST_API.md)** - Podcast generation documentation
+- **[Podcast Quick Reference](docs/PODCAST_QUICK_REF.md)** - Quick guide to podcast API
+- **[Podcast Implementation](docs/PODCAST_IMPLEMENTATION.md)** - Implementation details
+
+### By-Interests Features
+- **[By Interests API](docs/BY_INTERESTS_API.md)** - Filter articles by interests
+- **[By Interests Quick Reference](docs/BY_INTERESTS_QUICK_REF.md)** - Quick guide
+- **[By Interests Implementation](docs/BY_INTERESTS_IMPLEMENTATION.md)** - Implementation details
+
+### Other
 - **[Testing Guide](docs/TESTING_GUIDE.md)** - How to test the application
 
 ## License

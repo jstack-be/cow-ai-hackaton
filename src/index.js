@@ -51,6 +51,7 @@ app.listen(PORT, () => {
   2. Upload articles using the web interface
   3. Explore relationships and graph queries
   4. Query articles with natural language
+  5. Ask technical sports rules questions
 
 API Endpoints:
   GET  /health                        - Health check
@@ -59,7 +60,7 @@ API Endpoints:
   GET  /api/articles/:id              - Get article details
   POST /api/articles/analyze          - Analyze single article
   POST /api/articles/analyze-batch    - Analyze multiple articles
-  POST /api/articles/query            - Query articles with natural language
+  POST /api/articles/query            - Query articles (semantic search + sports rules)
   POST /api/articles/by-interests     - Filter articles by interests
 
   GET  /api/graph/stats               - Graph statistics

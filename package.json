@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:podcast": "node test-podcast.js",
+    "test:interests": "node test-by-interests.js",
+    "test:rules": "node test-sports-rules.js"
   },
   "keywords": [
     "sports",
