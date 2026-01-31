@@ -399,6 +399,10 @@
           <form id="uploadForm" class="upload-form">
             <input type="file" id="articleFile" accept=".txt" required placeholder="Select article file">
             <input type="text" id="articleTitle" placeholder="Article title (optional)">
+            <label style="color: #666; display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" id="generateContent">
+              Generate enhanced article with AI
+            </label>
             <button type="submit">Analyze Article</button>
           </form>
           <div id="uploadMessage"></div>
@@ -487,6 +491,24 @@
         </div>
 
         <div class="section">
+          <h2>💬 Ask Questions</h2>
+          <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
+            Ask natural language questions about your articles using AI-powered semantic search
+          </p>
+          <textarea 
+            id="queryQuestion" 
+            placeholder="E.g., Which teams reached the semi-finals? What happened in the championship?"
+            style="width: 100%; min-height: 80px; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit; font-size: 1em; margin-bottom: 10px; resize: vertical;"
+            onkeydown="if(event.key==='Enter' && (event.ctrlKey || event.metaKey)){event.preventDefault(); askQuestion();}"
+          ></textarea>
+          <button onclick="askQuestion()" style="width: 100%;">🔍 Ask Question</button>
+          <p style="color: #999; font-size: 0.8em; margin-top: 8px; text-align: center;">
+            Press Ctrl+Enter (Cmd+Enter on Mac) to submit
+          </p>
+          <div id="queryAnswer" class="query-result" style="display: none;"></div>
+        </div>
+
+        <div class="section">
           <h2>⚙️ System Stats</h2>
           <button onclick="loadStats()" style="width: 100%; margin-bottom: 15px;">Refresh Stats</button>
           <div id="detailedStats"></div>
@@ -521,9 +543,17 @@
       if (titleInput.value) {
         formData.append('title', titleInput.value);
       }
+      
+      // Add generateContent flag
+      const generateContent = document.getElementById('generateContent').checked;
+      formData.append('generateContent', generateContent);
 
       try {
-        messageDiv.innerHTML = '<div class="message info">Analyzing article<span class="loading"></span></div>';
+        const loadingMsg = generateContent 
+          ? 'Generating and analyzing article<span class="loading"></span>' 
+          : 'Analyzing article<span class="loading"></span>';
+        messageDiv.innerHTML = `<div class="message info">${loadingMsg}</div>`;
+        
         const response = await fetch(`${API_BASE}/articles/analyze`, {
           method: 'POST',
           body: formData
@@ -532,9 +562,14 @@
         const data = await response.json();
 
         if (data.success) {
-          showMessage(messageDiv, 'Article analyzed successfully!', 'success');
+          let successMsg = 'Article analyzed successfully!';
+          if (data.article.generatedHeadline) {
+            successMsg += '<br><small>Generated headline: ' + data.article.generatedHeadline + '</small>';
+          }
+          showMessage(messageDiv, successMsg, 'success');
           fileInput.value = '';
           titleInput.value = '';
+          document.getElementById('generateContent').checked = false;
           setTimeout(() => {
             loadArticles();
             loadStats();
@@ -771,6 +806,65 @@
               </div>
             `;
           });
+
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
+        }
+      } catch (error) {
+        resultDiv.innerHTML = '<div class="message error">Error: ' + error.message + '</div>';
+      }
+    }
+
+    async function askQuestion() {
+      const question = document.getElementById('queryQuestion').value;
+      const resultDiv = document.getElementById('queryAnswer');
+
+      if (!question || question.trim().length === 0) {
+        showMessage(resultDiv, 'Please enter a question', 'error');
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      try {
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = '<div class="message info">Thinking<span class="loading"></span></div>';
+
+        const response = await fetch(`${API_BASE}/articles/query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ query: question, topK: 3 })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          let html = `
+            <div style="margin-bottom: 20px;">
+              <h3 style="color: #667eea; margin-bottom: 10px;">💡 Answer</h3>
+              <div style="background: #f9f9f9; padding: 15px; border-radius: 6px; line-height: 1.6;">
+                ${data.answer.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          `;
+
+          if (data.sources && data.sources.length > 0) {
+            html += `
+              <div>
+                <h4 style="color: #666; margin-bottom: 10px;">📚 Sources</h4>
+                ${data.sources.map(source => `
+                  <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; margin: 8px 0;">
+                    <div style="font-weight: 500; color: #333;">${source.title}</div>
+                    <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+                      Relevance: <strong>${(source.similarity * 100).toFixed(1)}%</strong>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }
 
           resultDiv.innerHTML = html;
         } else {

@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
 import OpenAIAnalyzer from './services/openai-analyzer.js';
 import GraphService from './services/graph-service.js';
+import VectorStore from './services/vector-store.js';
+import ArticleGenerator from './services/article-generator.js';
 import createServer from './api/server.js';
 
 // Load environment variables
@@ -20,22 +22,31 @@ if (!OPENAI_API_KEY) {
 // Initialize services
 const openaiAnalyzer = new OpenAIAnalyzer(OPENAI_API_KEY);
 const graphService = new GraphService();
+const vectorStore = new VectorStore(OPENAI_API_KEY);
+const articleGenerator = new ArticleGenerator(OPENAI_API_KEY);
+
+// Load vector store data
+console.log('🔄 Loading vector store...');
+await vectorStore.load();
 
 // Create and start server
-const app = createServer(openaiAnalyzer, graphService);
+const app = createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator);
 
 app.listen(PORT, () => {
+  const stats = vectorStore.getStats();
   console.log(`
 ╔════════════════════════════════════════════════════════╗
 ║   Sports Article Graph Analyzer                        ║
 ║   🌐 Dashboard: http://localhost:${PORT}                   ║
 ║   📚 API Docs:  http://localhost:${PORT}/api                ║
+║   📊 Knowledge Base: ${stats.totalDocuments} articles indexed            ║
 ╚════════════════════════════════════════════════════════╝
 
 ✨ Quick Start:
   1. Open http://localhost:${PORT} in your browser
   2. Upload articles using the web interface
   3. Explore relationships and graph queries
+  4. Query articles with natural language
 
 API Endpoints:
   GET  /health                        - Health check
@@ -44,6 +55,7 @@ API Endpoints:
   GET  /api/articles/:id              - Get article details
   POST /api/articles/analyze          - Analyze single article
   POST /api/articles/analyze-batch    - Analyze multiple articles
+  POST /api/articles/query            - Query articles with natural language
 
   GET  /api/graph/stats               - Graph statistics
   GET  /api/graph/distance            - Calculate distance between articles
@@ -56,14 +68,20 @@ Press Ctrl+C to stop the server
 });
 
 // Handle graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\nShutting down gracefully...');
+process.on('SIGINT', async () => {
+  console.log('\n🔄 Saving vector store...');
+  await vectorStore.save();
+  console.log('✅ Vector store saved');
+  console.log('Shutting down gracefully...');
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  console.log('\nTerminating...');
+process.on('SIGTERM', async () => {
+  console.log('\n🔄 Saving vector store...');
+  await vectorStore.save();
+  console.log('✅ Vector store saved');
+  console.log('Terminating...');
   process.exit(0);
 });
 
-export { openaiAnalyzer, graphService, app };
+export { openaiAnalyzer, graphService, vectorStore, articleGenerator, app };

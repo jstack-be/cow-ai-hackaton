@@ -2,7 +2,7 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { upload, handleFileUpload, handleBatchFileUpload } from '../middleware/upload.js';
 
-export function createArticlesRouter(openaiAnalyzer, graphService) {
+export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, articleGenerator) {
   const router = express.Router();
 
   /**
@@ -14,14 +14,26 @@ export function createArticlesRouter(openaiAnalyzer, graphService) {
       const { fileContent, fileName } = req;
       const title = req.body.title || fileName.replace(/\.txt$/, '');
 
+      // Generate enhanced content if requested
+      let enhancedContent = fileContent;
+      let generatedHeadline = null;
+      
+      if (req.body.generateContent === 'true') {
+        console.log('🎨 Generating enhanced article content...');
+        const generated = await articleGenerator.generateContent(fileContent);
+        generatedHeadline = generated.headline;
+        enhancedContent = generated.article;
+      }
+
       // Analyze the article using OpenAI
-      const metadata = await openaiAnalyzer.analyzeArticle(fileContent);
+      const metadata = await openaiAnalyzer.analyzeArticle(enhancedContent);
 
       // Create article object
       const article = {
         id: uuidv4(),
-        title,
-        content: fileContent,
+        title: generatedHeadline || title,
+        content: enhancedContent,
+        sourceText: fileContent !== enhancedContent ? fileContent : undefined,
         metadata,
         url: req.body.url,
         analyzedAt: new Date()
@@ -30,13 +42,25 @@ export function createArticlesRouter(openaiAnalyzer, graphService) {
       // Add to graph service
       const result = graphService.addAnalyzedArticle(article);
 
+      // Add to vector store for semantic search
+      await vectorStore.addDocument({
+        id: result.id,
+        title: result.title,
+        content: result.content,
+        metadata: {
+          ...result.metadata,
+          sourceText: article.sourceText
+        }
+      });
+
       res.json({
         success: true,
         article: {
           id: result.id,
           title: result.title,
           metadata: result.metadata,
-          relatedArticles: result.relatedArticles[1] || []
+          relatedArticles: result.relatedArticles[1] || [],
+          generatedHeadline: generatedHeadline
         }
       });
     } catch (error) {
@@ -62,14 +86,26 @@ export function createArticlesRouter(openaiAnalyzer, graphService) {
           const { content, name } = filesContent[i];
           const title = req.body[`title_${i}`] || name.replace(/\.txt$/, '');
 
+          // Generate enhanced content if requested
+          let enhancedContent = content;
+          let generatedHeadline = null;
+          
+          if (req.body.generateContent === 'true') {
+            console.log(`🎨 Generating enhanced content for article ${i + 1}...`);
+            const generated = await articleGenerator.generateContent(content);
+            generatedHeadline = generated.headline;
+            enhancedContent = generated.article;
+          }
+
           // Analyze article
-          const metadata = await openaiAnalyzer.analyzeArticle(content);
+          const metadata = await openaiAnalyzer.analyzeArticle(enhancedContent);
 
           // Create article
           const article = {
             id: uuidv4(),
-            title,
-            content,
+            title: generatedHeadline || title,
+            content: enhancedContent,
+            sourceText: content !== enhancedContent ? content : undefined,
             metadata,
             analyzedAt: new Date()
           };
@@ -77,10 +113,22 @@ export function createArticlesRouter(openaiAnalyzer, graphService) {
           // Add to graph
           const result = graphService.addAnalyzedArticle(article);
 
+          // Add to vector store
+          await vectorStore.addDocument({
+            id: result.id,
+            title: result.title,
+            content: result.content,
+            metadata: {
+              ...result.metadata,
+              sourceText: article.sourceText
+            }
+          });
+
           results.analyzed.push({
             id: result.id,
             title: result.title,
-            metadata: result.metadata
+            metadata: result.metadata,
+            generatedHeadline: generatedHeadline
           });
         } catch (error) {
           results.failed.push({
@@ -96,6 +144,36 @@ export function createArticlesRouter(openaiAnalyzer, graphService) {
         failed: results.failed.length,
         articles: results.analyzed,
         errors: results.failed.length > 0 ? results.failed : undefined
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * POST /api/articles/query
+   * Query articles using natural language (semantic search + LLM)
+   */
+  router.post('/query', async (req, res, next) => {
+    try {
+      const { query, topK = 3 } = req.body;
+
+      if (!query || typeof query !== 'string' || query.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Query is required and must be a non-empty string'
+        });
+      }
+
+      // Use vector store to answer the question
+      const result = await vectorStore.answerQuestion(query, topK);
+
+      res.json({
+        success: true,
+        query: query,
+        answer: result.answer,
+        sources: result.sources,
+        documentsSearched: topK
       });
     } catch (error) {
       next(error);

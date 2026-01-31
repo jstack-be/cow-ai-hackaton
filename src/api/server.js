@@ -13,9 +13,11 @@ const __dirname = path.dirname(__filename);
  * Create and configure the Express server
  * @param {OpenAIAnalyzer} openaiAnalyzer
  * @param {GraphService} graphService
+ * @param {VectorStore} vectorStore
+ * @param {ArticleGenerator} articleGenerator
  * @returns {express.Application}
  */
-export function createServer(openaiAnalyzer, graphService) {
+export function createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator) {
   const app = express();
 
   // Middleware
@@ -36,7 +38,7 @@ export function createServer(openaiAnalyzer, graphService) {
   });
 
   // API routes
-  app.use('/api/articles', createArticlesRouter(openaiAnalyzer, graphService));
+  app.use('/api/articles', createArticlesRouter(openaiAnalyzer, graphService, vectorStore, articleGenerator));
   app.use('/api/graph', createGraphRouter(graphService));
 
   // Root endpoint - serve dashboard
@@ -56,6 +58,7 @@ export function createServer(openaiAnalyzer, graphService) {
         articles: {
           analyze: 'POST /api/articles/analyze',
           analyzeBatch: 'POST /api/articles/analyze-batch',
+          query: 'POST /api/articles/query',
           getArticle: 'GET /api/articles/:id',
           getAllArticles: 'GET /api/articles'
         },
