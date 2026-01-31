@@ -58,9 +58,12 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
         article: {
           id: result.id,
           title: result.title,
+          content: result.content,
+          sourceText: result.sourceText,
           metadata: result.metadata,
           relatedArticles: result.relatedArticles[1] || [],
-          generatedHeadline: generatedHeadline
+          generatedHeadline: generatedHeadline,
+          analyzedAt: result.analyzedAt
         }
       });
     } catch (error) {
@@ -201,8 +204,12 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
         article: {
           id: article.id,
           title: article.title,
+          content: article.content,
+          sourceText: article.sourceText,
           metadata: article.metadata,
-          connections: article.connections
+          connections: article.connections,
+          analyzedAt: article.analyzedAt,
+          url: article.url
         }
       });
     } catch (error) {
@@ -223,7 +230,11 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
         articles: articles.map(article => ({
           id: article.id,
           title: article.title,
-          metadata: article.metadata
+          content: article.content,
+          sourceText: article.sourceText,
+          metadata: article.metadata,
+          analyzedAt: article.analyzedAt,
+          url: article.url
         })),
         total: articles.length
       });
