@@ -1,9 +1,11 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { upload, handleFileUpload, handleBatchFileUpload } from '../middleware/upload.js';
+import ImageService from '../../services/image-service.js';
 
 export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, articleGenerator) {
   const router = express.Router();
+  const imageService = new ImageService();
 
   /**
    * POST /api/articles/analyze
@@ -184,7 +186,7 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
    * GET /api/articles/:id
    * Get article details with connections
    */
-  router.get('/:id', (req, res, next) => {
+  router.get('/:id', async (req, res, next) => {
     try {
       const { id } = req.params;
       const article = graphService.getArticle(id);
@@ -196,13 +198,19 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
         });
       }
 
+      // Get sport-related image
+      const sport = imageService.inferSportFromMetadata(article.metadata);
+      const imageUrl = await imageService.getImageForSport(sport);
+
       res.json({
         success: true,
         article: {
           id: article.id,
           title: article.title,
           metadata: article.metadata,
-          connections: article.connections
+          connections: article.connections,
+          imageUrl,
+          sport
         }
       });
     } catch (error) {
@@ -214,17 +222,29 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
    * GET /api/articles
    * Get all articles
    */
-  router.get('/', (req, res, next) => {
+  router.get('/', async (req, res, next) => {
     try {
       const articles = graphService.getAllArticles();
 
+      // Add images to all articles
+      const articlesWithImages = await Promise.all(
+        articles.map(async (article) => {
+          const sport = imageService.inferSportFromMetadata(article.metadata);
+          const imageUrl = await imageService.getImageForSport(sport);
+          
+          return {
+            id: article.id,
+            title: article.title,
+            metadata: article.metadata,
+            imageUrl,
+            sport
+          };
+        })
+      );
+
       res.json({
         success: true,
-        articles: articles.map(article => ({
-          id: article.id,
-          title: article.title,
-          metadata: article.metadata
-        })),
+        articles: articlesWithImages,
         total: articles.length
       });
     } catch (error) {

@@ -2,12 +2,14 @@
 export const SYSTEM_PROMPT = `You are a sports article analyzer. Your task is to extract structured information from sports articles and return it as valid JSON.
 
 Extract the following information:
-1. clubs: Array of sport clubs mentioned with their name, county, and league
-2. matches: Array of matches mentioned with teams and results
-3. primaryCounty: The main county/area the article focuses on
-4. leagues: All leagues mentioned in the article
+1. sport: The specific sport being discussed (e.g., "GAA", "soccer", "rugby", "korfball", "hurling")
+2. clubs: Array of sport clubs mentioned with their name, county, and league
+3. matches: Array of matches mentioned with teams and results
+4. primaryCounty: The main county/area the article focuses on
+5. leagues: All leagues mentioned in the article
 
 Rules:
+- Sport should be a single sport name (e.g., "GAA", "soccer", "rugby", "korfball", "basketball", "tennis")
 - Club names should be full official names (e.g., "Dublin GAA", "Shamrock Rovers")
 - Counties should be valid Irish county names
 - For matches, include homeTeam, awayTeam, and result (if mentioned)
@@ -17,6 +19,7 @@ Rules:
 
 The JSON structure should match this format:
 {
+  "sport": "Sport Name",
   "clubs": [
     {
       "name": "Club Name",
@@ -40,6 +43,7 @@ export const FEW_SHOT_EXAMPLES = [
   {
     input: `Dublin GAA secured a decisive 2-15 to 1-12 victory over Kerry GAA in yesterday's All-Ireland Senior Championship final at Croke Park. This championship is the premier competition for both teams. The match showcased excellent attacking play from Dublin's midfield.`,
     output: {
+      sport: "GAA",
       clubs: [
         { name: "Dublin GAA", county: "Dublin", league: "All-Ireland Senior Championship" },
         { name: "Kerry GAA", county: "Kerry", league: "All-Ireland Senior Championship" }
@@ -54,6 +58,7 @@ export const FEW_SHOT_EXAMPLES = [
   {
     input: `Shamrock Rovers are preparing for this weekend's Dublin derby against Bohemians FC. Both clubs play in the League of Ireland Premier Division. The fixture at Tallaght Stadium is expected to be closely contested. Rovers have been training hard this week.`,
     output: {
+      sport: "soccer",
       clubs: [
         { name: "Shamrock Rovers", county: "Dublin", league: "League of Ireland Premier Division" },
         { name: "Bohemians FC", county: "Dublin", league: "League of Ireland Premier Division" }
@@ -66,6 +71,7 @@ export const FEW_SHOT_EXAMPLES = [
   {
     input: `Cork Rugby Club announced their new signing from Limerick. The player will compete in the Munster Rugby provincial competition. Cork is excited to have strengthened their squad ahead of the upcoming season.`,
     output: {
+      sport: "rugby",
       clubs: [
         { name: "Cork Rugby Club", county: "Cork", league: "Munster Rugby" },
         { name: "Limerick Rugby", county: "Limerick", league: "Munster Rugby" }

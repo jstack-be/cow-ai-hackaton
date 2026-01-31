@@ -16,6 +16,7 @@ const MatchSchema = z.object({
 
 // Schema for article metadata
 const ArticleMetadataSchema = z.object({
+  sport: z.string().optional().describe('The specific sport (e.g., GAA, soccer, rugby, korfball)'),
   clubs: z.array(ClubSchema).min(1, 'At least one club must be mentioned'),
   matches: z.array(MatchSchema).default([]),
   primaryCounty: z.string().nullable().transform(val => val || 'Unknown').describe('Primary county'),
