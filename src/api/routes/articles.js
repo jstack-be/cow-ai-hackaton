@@ -215,8 +215,8 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
           metadata: article.metadata,
           connections: article.connections,
           analyzedAt: article.analyzedAt,
-          url: article.url
-          imageUrl,
+          url: article.url,
+          imageUrl: imageUrl,
           sport
         }
       });
@@ -258,7 +258,9 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
           sourceText: article.sourceText,
           metadata: article.metadata,
           analyzedAt: article.analyzedAt,
-          url: article.url
+          url: article.url,
+          imageUrl: imageUrl,
+          sport
         })),
         total: articles.length
       });
