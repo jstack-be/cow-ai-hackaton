@@ -1,9 +1,11 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { upload, handleFileUpload, handleBatchFileUpload } from '../middleware/upload.js';
+import ImageService from '../../services/image-service.js';
 
 export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, articleGenerator) {
   const router = express.Router();
+  const imageService = new ImageService();
 
   /**
    * POST /api/articles/analyze
@@ -187,7 +189,7 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
    * GET /api/articles/:id
    * Get article details with connections
    */
-  router.get('/:id', (req, res, next) => {
+  router.get('/:id', async (req, res, next) => {
     try {
       const { id } = req.params;
       const article = graphService.getArticle(id);
@@ -198,6 +200,10 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
           error: `Article ${id} not found`
         });
       }
+
+      // Get sport-related image
+      const sport = imageService.inferSportFromMetadata(article.metadata);
+      const imageUrl = await imageService.getImageForSport(sport);
 
       res.json({
         success: true,
@@ -210,6 +216,8 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
           connections: article.connections,
           analyzedAt: article.analyzedAt,
           url: article.url
+          imageUrl,
+          sport
         }
       });
     } catch (error) {
@@ -221,9 +229,25 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
    * GET /api/articles
    * Get all articles
    */
-  router.get('/', (req, res, next) => {
+  router.get('/', async (req, res, next) => {
     try {
       const articles = graphService.getAllArticles();
+
+      // Add images to all articles
+      const articlesWithImages = await Promise.all(
+        articles.map(async (article) => {
+          const sport = imageService.inferSportFromMetadata(article.metadata);
+          const imageUrl = await imageService.getImageForSport(sport);
+          
+          return {
+            id: article.id,
+            title: article.title,
+            metadata: article.metadata,
+            imageUrl,
+            sport
+          };
+        })
+      );
 
       res.json({
         success: true,
@@ -237,6 +261,121 @@ export function createArticlesRouter(openaiAnalyzer, graphService, vectorStore, 
           url: article.url
         })),
         total: articles.length
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+   * POST /api/articles/by-interests
+   * Get articles filtered by interests
+   * Body: {
+   *   interests: [
+   *     { type: 'sport'|'club'|'county'|'league', value: string, weight: number },
+   *     ...
+   *   ]
+   * }
+   */
+  router.post('/by-interests', async (req, res, next) => {
+    try {
+      const { interests } = req.body;
+
+      if (!interests || !Array.isArray(interests) || interests.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'interests must be a non-empty array'
+        });
+      }
+
+      // Validate interest structure
+      for (const interest of interests) {
+        if (!interest.type || !interest.value) {
+          return res.status(400).json({
+            success: false,
+            error: 'Each interest must have a type and value'
+          });
+        }
+        
+        const validTypes = ['sport', 'club', 'county', 'league'];
+        if (!validTypes.includes(interest.type)) {
+          return res.status(400).json({
+            success: false,
+            error: `Interest type must be one of: ${validTypes.join(', ')}`
+          });
+        }
+      }
+
+      // Get all articles and filter by interests
+      const allArticles = graphService.getAllArticles();
+      const matchingArticles = new Set();
+
+      for (const article of allArticles) {
+        let matches = false;
+
+        for (const interest of interests) {
+          const interestValue = interest.value.toLowerCase().trim();
+
+          switch (interest.type) {
+            case 'sport':
+              if (article.metadata?.sport?.toLowerCase().trim() === interestValue) {
+                matches = true;
+              }
+              break;
+
+            case 'club':
+              if (article.metadata?.clubs?.some(club => 
+                club.name.toLowerCase().trim().includes(interestValue)
+              )) {
+                matches = true;
+              }
+              break;
+
+            case 'county':
+              if (article.metadata?.primaryCounty?.toLowerCase().trim() === interestValue) {
+                matches = true;
+              }
+              break;
+
+            case 'league':
+              if (article.metadata?.leagues?.some(league => 
+                league.toLowerCase().trim().includes(interestValue)
+              )) {
+                matches = true;
+              }
+              break;
+          }
+
+          if (matches) break; // Found a matching interest, no need to check others
+        }
+
+        if (matches) {
+          matchingArticles.add(article);
+        }
+      }
+
+      // Convert set to array and add images
+      const articlesArray = Array.from(matchingArticles);
+      const articlesWithImages = await Promise.all(
+        articlesArray.map(async (article) => {
+          const sport = imageService.inferSportFromMetadata(article.metadata);
+          const imageUrl = await imageService.getImageForSport(sport);
+          
+          return {
+            id: article.id,
+            title: article.title,
+            metadata: article.metadata,
+            imageUrl,
+            sport
+          };
+        })
+      );
+
+      res.json({
+        success: true,
+        articles: articlesWithImages,
+        total: articlesWithImages.length,
+        interests: interests
       });
     } catch (error) {
       next(error);

@@ -3,8 +3,8 @@ import { z } from 'zod';
 // Schema for a sport club
 const ClubSchema = z.object({
   name: z.string().min(1, 'Club name is required').describe('Full name of the club'),
-  county: z.string().min(1, 'County is required').describe('County where the club is located'),
-  league: z.string().optional().describe('League the club plays in')
+  county: z.string().nullable().transform(val => val || 'Unknown').describe('County where the club is located'),
+  league: z.string().nullable().optional().describe('League the club plays in')
 });
 
 // Schema for a match
@@ -16,6 +16,7 @@ const MatchSchema = z.object({
 
 // Schema for article metadata
 const ArticleMetadataSchema = z.object({
+  sport: z.string().optional().describe('The specific sport (e.g., GAA, soccer, rugby, korfball)'),
   clubs: z.array(ClubSchema).min(1, 'At least one club must be mentioned'),
   matches: z.array(MatchSchema).default([]),
   primaryCounty: z.string().min(1, 'Primary county is required'),

@@ -58,6 +58,7 @@ API Endpoints:
   POST /api/articles/analyze          - Analyze single article
   POST /api/articles/analyze-batch    - Analyze multiple articles
   POST /api/articles/query            - Query articles with natural language
+  POST /api/articles/by-interests     - Filter articles by interests
 
   GET  /api/graph/stats               - Graph statistics
   GET  /api/graph/distance            - Calculate distance between articles

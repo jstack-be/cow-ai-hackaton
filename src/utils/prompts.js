@@ -11,6 +11,7 @@ Extract the following information:
 7. isFanBased: Boolean indicating if the article is about fan/community-based activities (club-related but not directly sport-related, such as member anniversaries, volunteer hiring, bar events, community outreach)
 
 Rules:
+- Sport should be a single sport name (e.g., "GAA", "soccer", "rugby", "korfball", "basketball", "tennis")
 - Club names should be full official names (e.g., "Dublin GAA", "Shamrock Rovers")
 - Counties should be valid Irish county names
 - For matches, include homeTeam, awayTeam, and result (if mentioned)
@@ -23,6 +24,7 @@ Rules:
 
 The JSON structure should match this format:
 {
+  "sport": "Sport Name",
   "clubs": [
     {
       "name": "Club Name",
@@ -49,6 +51,7 @@ export const FEW_SHOT_EXAMPLES = [
   {
     input: `Dublin GAA secured a decisive 2-15 to 1-12 victory over Kerry GAA in yesterday's All-Ireland Senior Championship final at Croke Park. This championship is the premier competition for both teams. The match showcased excellent attacking play from Dublin's midfield.`,
     output: {
+      sport: "GAA",
       clubs: [
         { name: "Dublin GAA", county: "Dublin", league: "All-Ireland Senior Championship" },
         { name: "Kerry GAA", county: "Kerry", league: "All-Ireland Senior Championship" }
@@ -66,6 +69,7 @@ export const FEW_SHOT_EXAMPLES = [
   {
     input: `Shamrock Rovers are preparing for this weekend's Dublin derby against Bohemians FC. Both clubs play in the League of Ireland Premier Division. The fixture at Tallaght Stadium is expected to be closely contested. Rovers have been training hard this week.`,
     output: {
+      sport: "soccer",
       clubs: [
         { name: "Shamrock Rovers", county: "Dublin", league: "League of Ireland Premier Division" },
         { name: "Bohemians FC", county: "Dublin", league: "League of Ireland Premier Division" }
@@ -81,6 +85,7 @@ export const FEW_SHOT_EXAMPLES = [
   {
     input: `Cork Rugby Club announced their new signing from Limerick. The player will compete in the Munster Rugby provincial competition. Cork is excited to have strengthened their squad ahead of the upcoming season.`,
     output: {
+      sport: "rugby",
       clubs: [
         { name: "Cork Rugby Club", county: "Cork", league: "Munster Rugby" },
         { name: "Limerick Rugby", county: "Limerick", league: "Munster Rugby" }
