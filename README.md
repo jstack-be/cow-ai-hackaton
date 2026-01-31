@@ -10,6 +10,11 @@ A Node.js REST API application that analyzes sports articles using OpenAI's Chat
   - Matches and their results
   - County/area information
   - Leagues and competitions
+- **AI Podcast Generation**: Generate engaging 3-minute podcast scripts:
+  - Create podcasts from all articles or filtered by interests
+  - Conversational single-person host style
+  - Natural language delivery ready for text-to-speech
+  - Filter by sport, club, county, or league
 - **Club Profile Pages**: Create and manage profiles for local sports clubs:
   - Store club information (name, county, league)
   - Add website and social media links
@@ -24,7 +29,7 @@ A Node.js REST API application that analyzes sports articles using OpenAI's Chat
   - Direct distance (weighted by relationship strength)
   - Shortest path discovery
   - Relevance scoring
-- **REST API**: Full-featured API for article analysis, club management, and graph querying
+- **REST API**: Full-featured API for article analysis, club management, graph querying, and podcast generation
 
 ## Prerequisites
 
@@ -234,6 +239,88 @@ Response:
 ```
 
 See [docs/BY_INTERESTS_API.md](docs/BY_INTERESTS_API.md) for detailed documentation and more examples.
+
+### Podcast Generation
+
+#### Generate Podcast from All Articles
+```
+POST /api/podcast/generate
+Content-Type: application/json
+
+Body:
+{
+  "limit": 10  // Optional: max articles to use (default: 10)
+}
+
+Example:
+curl -X POST http://localhost:3000/api/podcast/generate \
+  -H "Content-Type: application/json" \
+  -d '{"limit": 5}'
+
+Response:
+{
+  "success": true,
+  "podcast": {
+    "title": "This Week in Irish Sports",
+    "script": "Hey everyone! Welcome back...",
+    "summary": "A roundup of recent GAA matches",
+    "topics": ["Gaelic Football", "Hurling"],
+    "duration": "3:15",
+    "wordCount": 487,
+    "articlesUsed": 5,
+    "generatedAt": "2026-01-31T12:00:00Z"
+  }
+}
+```
+
+#### Generate Podcast by Interests
+```
+POST /api/podcast/by-interests
+Content-Type: application/json
+
+Body:
+{
+  "interests": [
+    { "type": "sport|club|county|league", "value": "string", "weight": number }
+  ],
+  "limit": 10  // Optional: max articles to use (default: 10)
+}
+
+Example:
+curl -X POST http://localhost:3000/api/podcast/by-interests \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interests": [
+      { "type": "sport", "value": "Hurling", "weight": 1.0 },
+      { "type": "county", "value": "Cork", "weight": 0.8 }
+    ],
+    "limit": 5
+  }'
+
+Response:
+{
+  "success": true,
+  "podcast": {
+    "title": "Cork Hurling Special",
+    "script": "Welcome to today's special episode...",
+    "summary": "Cork hurling highlights and analysis",
+    "topics": ["Hurling", "Cork GAA"],
+    "duration": "3:10",
+    "wordCount": 475,
+    "articlesUsed": 4,
+    "generatedAt": "2026-01-31T12:00:00Z"
+  },
+  "interests": [...]
+}
+```
+
+**Podcast Features:**
+- 🎙️ Single-person podcast format (~3 minutes)
+- 🎯 Conversational and engaging style
+- 📝 AI-generated using GPT-4
+- 🔊 Ready for text-to-speech conversion
+
+See [docs/PODCAST_API.md](docs/PODCAST_API.md) for full documentation and [docs/PODCAST_QUICK_REF.md](docs/PODCAST_QUICK_REF.md) for quick reference.
 
 ### Graph Operations
 

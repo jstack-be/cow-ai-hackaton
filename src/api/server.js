@@ -6,6 +6,7 @@ import errorHandler from './middleware/error-handler.js';
 import createArticlesRouter from './routes/articles.js';
 import createGraphRouter from './routes/graph.js';
 import createClubsRouter from './routes/clubs.js';
+import createPodcastRouter from './routes/podcast.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,9 +18,10 @@ const __dirname = path.dirname(__filename);
  * @param {VectorStore} vectorStore
  * @param {ArticleGenerator} articleGenerator
  * @param {ClubStore} clubStore
+ * @param {PodcastService} podcastService
  * @returns {express.Application}
  */
-export function createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore) {
+export function createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore, podcastService) {
   const app = express();
 
   // Middleware
@@ -43,6 +45,7 @@ export function createServer(openaiAnalyzer, graphService, vectorStore, articleG
   app.use('/api/articles', createArticlesRouter(openaiAnalyzer, graphService, vectorStore, articleGenerator));
   app.use('/api/graph', createGraphRouter(graphService));
   app.use('/api/clubs', createClubsRouter(clubStore, graphService.store));
+  app.use('/api/podcast', createPodcastRouter(graphService, podcastService));
 
   // Root endpoint - serve dashboard
   app.get('/', (req, res) => {
@@ -83,6 +86,10 @@ export function createServer(openaiAnalyzer, graphService, vectorStore, articleG
           deleteClub: 'DELETE /api/clubs/:id',
           getByCounty: 'GET /api/clubs/by-county/:county',
           getByLeague: 'GET /api/clubs/by-league/:league'
+        },
+        podcast: {
+          generate: 'POST /api/podcast/generate',
+          byInterests: 'POST /api/podcast/by-interests'
         }
       }
     });

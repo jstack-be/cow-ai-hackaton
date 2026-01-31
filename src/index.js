@@ -4,6 +4,7 @@ import GraphService from './services/graph-service.js';
 import VectorStore from './services/vector-store.js';
 import ArticleGenerator from './services/article-generator.js';
 import ClubStore from './services/club-store.js';
+import PodcastService from './services/podcast-service.js';
 import createServer from './api/server.js';
 
 // Load environment variables
@@ -26,13 +27,14 @@ const clubStore = new ClubStore();
 const graphService = new GraphService(clubStore);
 const vectorStore = new VectorStore(OPENAI_API_KEY);
 const articleGenerator = new ArticleGenerator(OPENAI_API_KEY);
+const podcastService = new PodcastService(OPENAI_API_KEY);
 
 // Load vector store data
 console.log('🔄 Loading vector store...');
 await vectorStore.load();
 
 // Create and start server
-const app = createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore);
+const app = createServer(openaiAnalyzer, graphService, vectorStore, articleGenerator, clubStore, podcastService);
 
 app.listen(PORT, () => {
   const stats = vectorStore.getStats();
@@ -72,6 +74,9 @@ API Endpoints:
   PUT  /api/clubs/:id                 - Update club profile
   GET  /api/clubs/:id/articles        - Get articles about a club
 
+  POST /api/podcast/generate          - Generate podcast from all articles
+  POST /api/podcast/by-interests      - Generate podcast from interests
+
 Press Ctrl+C to stop the server
   `);
 });
@@ -89,4 +94,4 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-export { openaiAnalyzer, graphService, vectorStore, articleGenerator, app };
+export { openaiAnalyzer, graphService, vectorStore, articleGenerator, podcastService, app };
